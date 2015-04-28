@@ -120,7 +120,7 @@ Log::print(const char* file, int line, const char* fmt, ...)
 {
 	// check if fmt begins with a priority argument
 	ELevel priority = kINFO;
-	if ((strlen(fmt) > 2) && (fmt[0] == '%' && fmt[1] == 'z')) {
+	if (fmt[0] == '%' && fmt[1] == 'z' && fmt[2] != 0) {
 
 		// 060 in octal is 0 (48 in decimal), so subtracting this converts ascii
 		// number it a true number. we could use atoi instead, but this is how
@@ -259,14 +259,12 @@ Log::setFilter(const char* maxPriority)
 void
 Log::setFilter(int maxPriority)
 {
-	ArchMutexLock lock(m_mutex);
 	m_maxPriority = maxPriority;
 }
 
 int
 Log::getFilter() const
 {
-	ArchMutexLock lock(m_mutex);
 	return m_maxPriority;
 }
 

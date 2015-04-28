@@ -206,7 +206,7 @@ class InternalCommands:
 	this_cmd = 'hm'
 	cmake_cmd = 'cmake'
 	qmake_cmd = 'qmake'
-	make_cmd = 'make'
+	make_cmd = 'make -j'
 	xcodebuild_cmd = 'xcodebuild'
 	w32_make_cmd = 'mingw32-make'
 	w32_qt_version = '4.6.2'

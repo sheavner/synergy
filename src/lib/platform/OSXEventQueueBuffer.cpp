@@ -54,10 +54,10 @@ OSXEventQueueBuffer::init()
 }
 
 void
-OSXEventQueueBuffer::waitForEvent(double timeout)
+OSXEventQueueBuffer::waitForEvent(double timeoutSec)
 {
 	EventRef event;
-	ReceiveNextEvent(0, NULL, timeout, false, &event);
+	ReceiveNextEvent(0, NULL, timeoutSec, kEventLeaveInQueue, &event);
 }
 
 IEventQueueBuffer::Type
@@ -70,7 +70,7 @@ OSXEventQueueBuffer::getEvent(Event& event, UInt32& dataID)
 	}
 
 	// get the next event
-	OSStatus error = ReceiveNextEvent(0, NULL, 0.0, true, &m_event);
+	OSStatus error = ReceiveNextEvent(0, NULL, kEventDurationNoWait, kEventRemoveFromQueue, &m_event);
 
 	// handle the event
 	if (error == eventLoopQuitErr) {
@@ -126,7 +126,7 @@ bool
 OSXEventQueueBuffer::isEmpty() const
 {
 	EventRef event;
-	OSStatus status = ReceiveNextEvent(0, NULL, 0.0, false, &event);
+	OSStatus status = ReceiveNextEvent(0, NULL, kEventDurationNoWait, kEventLeaveInQueue, &event);
 	return (status == eventLoopTimedOutErr);
 }
 

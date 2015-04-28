@@ -608,7 +608,8 @@ OSXKeyState::fakeKey(const Keystroke& keystroke)
 		// add a delay if client data isn't zero
 		// FIXME -- why?
 		if (client != 0) {
-			ARCH->sleep(0.01);
+//			ARCH->sleep(0.01);
+            sched_yield();
 		}
 		break;
 	}
