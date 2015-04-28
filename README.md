@@ -16,3 +16,13 @@ Commands that are running after building command line version.
 
   501 52681     1   0 12:12PM ??         0:01.95 /Users/sdh/src/synergy/bin/Synergy.app/Contents/MacOS/Synergy
   501 52684 52681   0 12:12PM ??         0:00.55 /Users/sdh/src/synergy/bin/Synergy.app/Contents/MacOS/synergyc -f --no-tray --debug WARNING --name scotts-air.local --enable-drag-drop --enable-crypto 192.168.1.129:24800
+
+Command line build
+
+./hm.sh conf -g1 --mac-sdk 10.10 --mac-identity test
+./hm.sh build
+
+Xcode build
+
+./hm.sh conf -g2
+

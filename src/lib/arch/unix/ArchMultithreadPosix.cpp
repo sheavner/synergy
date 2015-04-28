@@ -464,13 +464,8 @@ ArchMultithreadPosix::setPriorityOfThread(ArchThread thread, int /*n*/)
 void
 ArchMultithreadPosix::testCancelThread()
 {
-	// find current thread
-	lockMutex(m_threadMutex);
-	ArchThreadImpl* thread = findNoRef(pthread_self());
-	unlockMutex(m_threadMutex);
-
 	// test cancel on thread
-	testCancelThreadImpl(thread);
+	testCancelThreadImpl(NULL);
 }
 
 bool
@@ -675,10 +670,14 @@ ArchMultithreadPosix::refThread(ArchThreadImpl* thread)
 void
 ArchMultithreadPosix::testCancelThreadImpl(ArchThreadImpl* thread)
 {
-	assert(thread != NULL);
-
 	// update cancel state
 	lockMutex(m_threadMutex);
+
+    if (NULL == thread)
+        thread = findNoRef(pthread_self());
+
+    assert(thread != NULL);
+
 	bool cancel = false;
 	if (thread->m_cancel && !thread->m_cancelling) {
 		thread->m_cancelling = true;
