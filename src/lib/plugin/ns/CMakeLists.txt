@@ -45,10 +45,11 @@ endif()
 
 if (UNIX)
   if (APPLE)
-    set(OPENSSL_LIBS
-	  ${CMAKE_SOURCE_DIR}/ext/openssl/libssl.a
-	  ${CMAKE_SOURCE_DIR}/ext/openssl/libcrypto.a
-    )
+    set(OPENSSL_LIBS ssl crypto)
+#    set(OPENSSL_LIBS
+#	  ${CMAKE_SOURCE_DIR}/ext/openssl/libssl.a
+#	  ${CMAKE_SOURCE_DIR}/ext/openssl/libcrypto.a
+#    )
   else()
     set(OPENSSL_LIBS ssl crypto)
   endif()
