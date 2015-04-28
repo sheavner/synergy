@@ -76,7 +76,7 @@ if (UNIX)
 
 	# warnings as errors:
 	# we have a problem with people checking in code with warnings.
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
 	if (NOT APPLE)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
