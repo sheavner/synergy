@@ -16,7 +16,7 @@
 
 # TODO: split this file up, it's too long!
 
-import sys, os, ConfigParser, shutil, re, ftputil, zipfile, glob, commands
+import sys, os, ConfigParser, shutil, re, ftputil, zipfile, glob, commands, fnmatch
 from generators import VisualStudioGenerator, EclipseGenerator, XcodeGenerator, MakefilesGenerator
 from getopt import gnu_getopt
 
@@ -44,6 +44,7 @@ class Toolchain:
 		'configure' : ['g:dr', ['generator=', 'debug', 'release', 'mac-sdk=', 'mac-identity=']],
 		'build'     : ['dr', ['debug', 'release']],
 		'clean'     : ['dr', ['debug', 'release']],
+		'distclean' : ['', []],
 		'update'    : ['', []],
 		'install'   : ['', []],
 		'doxygen'   : ['', []],
@@ -254,12 +255,18 @@ class InternalCommands:
 	gmockDir = 'gmock-1.6.0'
 
 	win32_generators = {
-		1 : VisualStudioGenerator('10'),
-		2 : VisualStudioGenerator('10 Win64'),
-		3 : VisualStudioGenerator('9 2008'),
-		4 : VisualStudioGenerator('9 2008 Win64'),
-		5 : VisualStudioGenerator('8 2005'),
-		6 : VisualStudioGenerator('8 2005 Win64')
+		1 : VisualStudioGenerator('14'),
+		2 : VisualStudioGenerator('14 Win64'),   # 14-64 untested
+		3 : VisualStudioGenerator('12'),         # 12-32 untested
+		4 : VisualStudioGenerator('12 Win64'),	 # 12-64 untested	
+		5 : VisualStudioGenerator('11'),
+		6 : VisualStudioGenerator('11 Win64'),	
+		7 : VisualStudioGenerator('10'),
+		8 : VisualStudioGenerator('10 Win64'),
+		9 : VisualStudioGenerator('9 2008'),
+		10 : VisualStudioGenerator('9 2008 Win64'),
+		11 : VisualStudioGenerator('8 2005'),
+		12 : VisualStudioGenerator('8 2005 Win64')
 	}
 
 	unix_generators = {
@@ -521,7 +528,7 @@ class InternalCommands:
 			raise Exception('QMake encountered error: ' + str(err))
 
 	def getQmakeVersion(self):
-		version = commands.getoutput("qmake --version")
+		version = commands.getoutput("%s --version" % self.qmake_cmd)
 		result = re.search('(\d+)\.(\d+)\.(\d)', version)
 		
 		if not result:
@@ -614,9 +621,10 @@ class InternalCommands:
 					ver = m.group(1)
 					if ver != self.w32_qt_version: # TODO: test properly
 						print >> sys.stderr, (
-							'Warning: Not using supported Qt version %s'
-							' (your version is %s).'
-							) % (self.w32_qt_version, ver)
+							'Warning: Continuing with unsupported Qt version %s'
+							' (desired version is %s).'
+							) % (ver, self.w32_qt_version)
+						pass
 				else:
 					pass # any version should be ok for other platforms
 			else:
@@ -894,18 +902,52 @@ class InternalCommands:
 		# allow user to skip qui clean
 		if self.enableMakeGui:
 			self.cleanGui(targets)
+
+	def findMatchingFiles(self, directory, pattern):
+		for root, dirs, files in os.walk(directory):
+			for basename in fnmatch.filter(files, pattern):
+				filename = os.path.join(root, basename)
+				yield filename
+
+	# Remove a file or directory tree, don't report errors (don't care if doesn't exist)
+	def removeFileOrTree(self, path):
+		if '.git' in path:
+			print "  Ignoring %s" % path
+			return
+		print "  %s" % path
+		shutil.rmtree(path, True)
+		try:
+			os.remove(path)
+		except:
+			pass		
+
+	def distclean(self):
+		print "Cleaning generated files.  You'll need to re-run \"hm conf\" . . ."
+		with open('.gitignore') as openFile:
+			for f in openFile:
+				if f.startswith('# Everything above this line will be wiped'):
+					break
+				f = f.rstrip('\n')
+				if not f:
+					continue
+				if f.startswith("/"):
+					for foundFile in glob.glob("./%s" % f):
+						self.removeFileOrTree(foundFile)
+				else:
+					for foundFile in self.findMatchingFiles(".", f):
+						self.removeFileOrTree(foundFile)
 	
 	def cleanCore(self, targets):
 		generator = self.getGeneratorFromConfig().cmakeName
 
 		if generator.startswith('Visual Studio'):
 			# special case for version 10, use new /target:clean
-			if generator.startswith('Visual Studio 10'):
+			if re.match('Visual Studio 1\d', generator):
 				for target in targets:
 					self.run_vcbuild(generator, target, self.sln_filepath(), '/target:clean')
 				
 			# any other version of visual studio, use /clean
-			elif generator.startswith('Visual Studio'):
+			else:
 				for target in targets:
 					self.run_vcbuild(generator, target, self.sln_filepath(), '/clean')
 
@@ -960,9 +1002,12 @@ class InternalCommands:
 		if sys.version_info < (2, 4):
 			raise Exception("Python 2.4 or greater required.")
 
-		p = subprocess.Popen(
-			["git", "log", "--pretty=format:%h", "-n", "1"],
-			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		try:
+			p = subprocess.Popen(
+				["git", "log", "--pretty=format:%h", "-n", "1"],
+				stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		except:
+			raise Exception("Could not get revision, is git installed?")
 
 		stdout, stderr = p.communicate()
 
@@ -1750,6 +1795,12 @@ class InternalCommands:
 			value,type = _winreg.QueryValueEx(key, '9.0')
 		elif generator.startswith('Visual Studio 10'):
 			value,type = _winreg.QueryValueEx(key, '10.0')
+		elif generator.startswith('Visual Studio 11'):
+			value,type = _winreg.QueryValueEx(key, '11.0')
+		elif generator.startswith('Visual Studio 12'):
+			value,type = _winreg.QueryValueEx(key, '12.0')
+		elif generator.startswith('Visual Studio 14'):
+			value,type = _winreg.QueryValueEx(key, '14.0')
 		else:
 			raise Exception('Cannot determine vcvarsall.bat location for: ' + generator)
 		
@@ -1792,7 +1843,7 @@ class InternalCommands:
 		else:
 			config = 'Debug'
 				
-		if generator.startswith('Visual Studio 10'):
+		if re.match('Visual Studio 1\d', generator):
 			cmd = ('@echo off\n'
 				'call "%s" %s \n'
 				'cd "%s"\n'
@@ -1942,6 +1993,9 @@ class CommandHandler:
 	
 	def clean(self):
 		self.ic.clean(self.build_targets)
+
+	def distclean(self):
+		self.ic.distclean()
 	
 	def update(self):
 		self.ic.update()
